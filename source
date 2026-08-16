@@ -296,6 +296,13 @@ function randomString()
 	return table.concat(array)
 end
 
+IYConnections = {}
+function addconn(signal,func)
+	local conn = signal:Connect(func)
+	IYConnections[#IYConnections+1] = conn
+	return conn
+end
+
 PARENT = nil
 MAX_DISPLAY_ORDER = 1.7976931348623157e308
 if get_hidden_gui or gethui then
@@ -3384,7 +3391,7 @@ function CreateJoinLabel(plr,ID)
 	info2.Text = string.gsub(info2.Text, "Loading...",splitDates[2].."/"..splitDates[3].."/"..splitDates[1])
 end
 
-IYMouse.KeyDown:Connect(function(Key)
+addconn(IYMouse.KeyDown,function(Key)
 	if (Key==prefix) then
 		RunService.RenderStepped:Wait()
 		Cmdbar:CaptureFocus()
@@ -4047,7 +4054,7 @@ if isLegacyChat then
 	end
 end
 
-Players.PlayerRemoving:Connect(function(player)
+addconn(Players.PlayerRemoving,function(player)
 	if ESPenabled or CHMSenabled or COREGUI:FindFirstChild(player.Name..'_LC') then
 		for i,v in pairs(COREGUI:GetChildren()) do
 			if v.Name == player.Name..'_ESP' or v.Name == player.Name..'_LC' or v.Name == player.Name..'_CHMS' then
@@ -4248,18 +4255,18 @@ function UpdateToViewport()
 		Notification:TweenPosition(UDim2.new(1, -CamViewport() + 250, Notification.Position.Y.Scale, Notification.Position.Y.Offset), "InOut", "Quart", 0.04, true, nil)
 	end
 end
-CameraChanged = workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateToViewport)
+CameraChanged = addconn(workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"),UpdateToViewport)
 
 function updateCamera(child, parent)
 	if parent ~= workspace then
 		CamMoved:Disconnect()
 		CameraChanged:Disconnect()
 		repeat wait() until workspace.CurrentCamera
-		CameraChanged = workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateToViewport)
-		CamMoved = workspace.CurrentCamera.AncestryChanged:Connect(updateCamera)
+		CameraChanged = addconn(workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"),UpdateToViewport)
+		CamMoved = addconn(workspace.CurrentCamera.AncestryChanged,updateCamera)
 	end
 end
-CamMoved = workspace.CurrentCamera.AncestryChanged:Connect(updateCamera)
+CamMoved = addconn(workspace.CurrentCamera.AncestryChanged,updateCamera)
 
 function dragMain(dragpoint,gui)
 	task.spawn(function()
@@ -4537,6 +4544,7 @@ CMDs[#CMDs + 1] = {NAME = 'unctrllock', DESC = 'Re-binds Shiftlock to LeftShift'
 CMDs[#CMDs + 1] = {NAME = 'exit / shutdown / leave', DESC = 'Exits the game'}
 CMDs[#CMDs + 1] = {NAME = 'removecmd / deletecmd', DESC = 'Removes a command until the script is reloaded'}
 CMDs[#CMDs + 1] = {NAME = 'breakloops / break (cmd loops)', DESC = 'Stops any cmd loops (;100^1^cmd)'}
+CMDs[#CMDs + 1] = {NAME = 'unloadiy / unload', DESC = 'Unloads Infinite Yield'}
 CMDs[#CMDs + 1] = {NAME = '', DESC = ''}
 CMDs[#CMDs + 1] = {NAME = 'noclip', DESC = 'Go through objects'}
 CMDs[#CMDs + 1] = {NAME = 'unnoclip / clip', DESC = 'Disables noclip'}
@@ -5040,7 +5048,7 @@ end
 
 Clip = true
 spDelay = 0.1
-Players.LocalPlayer.CharacterAdded:Connect(function()
+addconn(Players.LocalPlayer.CharacterAdded,function()
 	NOFLY()
 	floating = false
 
@@ -5622,7 +5630,7 @@ end
 
 lastTextBoxString,lastTextBoxCon,lastEnteredString = nil,nil,nil
 
-UserInputService.TextBoxFocused:Connect(function(obj)
+addconn(UserInputService.TextBoxFocused,function(obj)
 	if lastTextBoxCon then lastTextBoxCon:Disconnect() end
 	if obj == Cmdbar then lastTextBoxString = nil return end
 	lastTextBoxString = obj.Text
@@ -5633,7 +5641,7 @@ UserInputService.TextBoxFocused:Connect(function(obj)
 	end)
 end)
 
-UserInputService.InputBegan:Connect(function(input,gameProcessed)
+addconn(UserInputService.InputBegan,function(input,gameProcessed)
 	if gameProcessed then
 		if Cmdbar and Cmdbar:IsFocused() then
 			if input.KeyCode == Enum.KeyCode.Up then
@@ -5653,7 +5661,7 @@ UserInputService.InputBegan:Connect(function(input,gameProcessed)
 	end
 end)
 
-Players.LocalPlayer.Chatted:Connect(function()
+addconn(Players.LocalPlayer.Chatted,function()
 	wait()
 	if lastEnteredString then
 		local message = lastEnteredString
@@ -6225,8 +6233,8 @@ function onInputEnded(input,gameProcessed)
 	end
 end
 
-UserInputService.InputBegan:Connect(onInputBegan)
-UserInputService.InputEnded:Connect(onInputEnded)
+addconn(UserInputService.InputBegan,onInputBegan)
+addconn(UserInputService.InputEnded,onInputEnded)
 
 ClickTP.Select.MouseButton1Click:Connect(function()
 	if keySelected then
@@ -6277,7 +6285,7 @@ local function clicktpFunc()
 	end)
 end
 
-IYMouse.Button1Down:Connect(function()
+addconn(IYMouse.Button1Down,function()
 	for i,v in pairs(binds) do
 		if v.COMMAND == 'clicktp' then
 			local input = v.KEY
@@ -6498,7 +6506,7 @@ Close_4.MouseButton1Click:Connect(function()
 end)
 
 local TeleportCheck = false
-Players.LocalPlayer.OnTeleport:Connect(function(State)
+addconn(Players.LocalPlayer.OnTeleport,function(State)
 	if KeepInfYield and (not TeleportCheck) and queueteleport then
 		TeleportCheck = true
 		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()")
@@ -6937,6 +6945,22 @@ end)
 
 addcmd('breakloops',{'break'},function(args, speaker)
 	lastBreakTime = tick()
+end)
+
+addcmd('unloadiy',{'unload','killiy'},function(args, speaker)
+	lastBreakTime = tick()
+	for i = #IYConnections,1,-1 do
+		pcall(function() IYConnections[i]:Disconnect() end)
+		IYConnections[i] = nil
+	end
+	if PARENT == COREGUI:FindFirstChild('RobloxGui') then
+		for _,v in pairs({ScaledHolder,selectionBox,selected,QuickCapture}) do
+			pcall(function() v:Destroy() end)
+		end
+	else
+		PARENT:Destroy()
+	end
+	pcall(function() getgenv().IY_LOADED = false end)
 end)
 
 addcmd('gametp',{'gameteleport'},function(args, speaker)
@@ -8301,7 +8325,7 @@ end)
 
 fcRunning = false
 local Camera = workspace.CurrentCamera
-workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+addconn(workspace:GetPropertyChangedSignal("CurrentCamera"),function()
 	local newCamera = workspace.CurrentCamera
 	if newCamera then
 		Camera = newCamera
@@ -12401,7 +12425,7 @@ addcmd('unstareat',{'unstare','nostare','nostareat'},function(args, speaker)
 end)
 
 RolewatchData = {Group = 0, Role = "", Leave = false}
-RolewatchConnection = Players.PlayerAdded:Connect(function(player)
+RolewatchConnection = addconn(Players.PlayerAdded,function(player)
 	if RolewatchData.Group == 0 then return end
 	if player:IsInGroup(RolewatchData.Group) then
 		if tostring(player:GetRoleInGroup(RolewatchData.Group)):lower() == RolewatchData.Role:lower() then
@@ -13085,7 +13109,7 @@ addcmd("debug", {}, function(args, speaker)
 end)
 
 if IsOnMobile then
-	local QuickCapture = Instance.new("TextButton")
+	QuickCapture = Instance.new("TextButton")
 	local UICorner = Instance.new("UICorner")
 	QuickCapture.Name = randomString()
 	QuickCapture.Parent = PARENT
@@ -13190,7 +13214,7 @@ function hookCharEvents(plr,instant)
 	end)
 end
 
-Players.PlayerAdded:Connect(function(plr)
+addconn(Players.PlayerAdded,function(plr)
 	eventEditor.FireEvent("OnJoin",plr.Name)
 	if isLegacyChat then plr.Chatted:Connect(function(msg) eventEditor.FireEvent("OnChatted",tostring(plr),msg) end) end
 	plr.CharacterAdded:Connect(function() eventEditor.FireEvent("OnSpawn",tostring(plr)) hookCharEvents(plr) end)
@@ -13207,7 +13231,7 @@ Players.PlayerAdded:Connect(function(plr)
 end)
 
 if not isLegacyChat then
-	TextChatService.MessageReceived:Connect(function(message)
+	addconn(TextChatService.MessageReceived,function(message)
 		if message.TextSource and message.Status ~= Enum.TextChatMessageStatus.InvalidTextChannelPermissions then
 			local player = Players:GetPlayerByUserId(message.TextSource.UserId)
 			if not player then return end
@@ -13261,13 +13285,13 @@ if aliases and #aliases > 0 then
 	refreshaliases()
 end
 
-IYMouse.Move:Connect(checkTT)
+addconn(IYMouse.Move,checkTT)
 
-CaptureService.CaptureBegan:Connect(function()
+addconn(CaptureService.CaptureBegan,function()
 	PARENT.Enabled = false
 end)
 
-CaptureService.CaptureEnded:Connect(function()
+addconn(CaptureService.CaptureEnded,function()
 	task.delay(0.1, function()
 		PARENT.Enabled = true
 	end)
